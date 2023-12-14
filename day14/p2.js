@@ -1,29 +1,28 @@
 const { readFileSync } = require('fs');
 
-const rows = readFileSync(`${__dirname}/text.txt`, 'utf-8').split('\n');
-let newRows = rows;
-let temp;
+let rows = readFileSync(`${__dirname}/text.txt`, 'utf-8').split('\n');
 let range = 0;
-let duplicate = new Set();
-let map = [];
+let duplicate = new Set([JSON.stringify(rows)]);
 let offset = 1;
 const CYCLE = 1000000000;
 while (true) {
-    temp = newRows;
-    newRows = cycle(temp);
+    rows = cycle(rows);
 
-    let sum = calculate(newRows);
-
-    if (duplicate.has(JSON.stringify(newRows))) {
-        range = offset - map.findIndex((value) => value === sum);
+    if (duplicate.has(JSON.stringify(rows))) {
+        range =
+            offset -
+            [...duplicate].findIndex((value) => value === JSON.stringify(rows));
         break;
     }
-    duplicate.add(JSON.stringify(newRows));
-    map[offset] = sum;
+    duplicate.add(JSON.stringify(rows));
     offset++;
 }
 
-console.log(map.slice(map.length - range)[(CYCLE - offset) % range]);
+console.log(
+    calculate(
+        JSON.parse([...duplicate][((CYCLE - offset) % range) + offset - range])
+    )
+);
 
 //* essential function
 
@@ -41,7 +40,7 @@ function calculate(rows) {
 function move(rows) {
     const newRows = new Array(rows.length)
         .fill('')
-        .map((x) => new Array(rows[0].length).fill('.'));
+        .map(() => new Array(rows[0].length).fill('.'));
     for (const [r, row] of rows.entries()) {
         let next = 0;
         for (const [c, char] of row.split('').entries()) {
