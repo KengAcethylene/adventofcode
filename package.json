@@ -24,5 +24,8 @@
     },
     "lint-staged": {
         "**/*": "prettier --write --ignore-unknown"
+    },
+    "dependencies": {
+        "collections": "^5.1.13"
     }
 }
