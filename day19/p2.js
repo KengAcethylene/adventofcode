@@ -7,20 +7,26 @@ const rows = readFileSync(`${__dirname}/text.txt`, 'utf-8')
 const conditions = {};
 
 for (const conds of rows[0]) {
-    const [name, cond] = conds.split('{');
-    conditions[name] = cond.slice(0, -1).split(',');
+    const [name, cond] = conds.slice(0, -1).split('{');
+    const temp = cond.split(',');
+    conditions[name] = [
+        ...temp.slice(0, -1).map((cond) => {
+            const [rule, next] = cond.split(':');
+            return [rule[0], rule[1], parseInt(rule.slice(2)), next];
+        }),
+        temp.at(-1),
+    ];
 }
 
 const mergedCondition = [[[], 'in']];
-const passedCondition = [];
 
-while (mergedCondition.length !== 0) {
+while (!mergedCondition.every((condition) => condition.at(-1) === 'A')) {
     const [prevCond, next] = mergedCondition.shift();
-    const copyPrevCond = JSON.parse(JSON.stringify(prevCond));
+    const copyPrevCond = [...prevCond];
 
-    //* if A, push to passedCondition array
+    //* if A, push back to array
     if (next === 'A') {
-        passedCondition.push(prevCond);
+        mergedCondition.push([prevCond, next]);
         continue;
     }
 
@@ -31,36 +37,34 @@ while (mergedCondition.length !== 0) {
     const avaliableCondition = conditions[next];
 
     //* map every possible way start from in -> x1 , in -> x2
-    for (const [condIdx, cond] of avaliableCondition.entries()) {
-        //* every conditions except first have to reverse from 'x>value --> x<value+1' and 'x<value --> x>value-1'
-        const reversedCondtion = avaliableCondition
-            .slice(0, condIdx)
-            .map((cond) => {
-                const [c] = cond.split(':');
-                const valueInt = parseInt(c.slice(2));
-                return `${c[0]}${c[1] === '<' ? '>' : '<'}${
-                    c[1] === '<' ? valueInt - 1 : valueInt + 1
-                }`;
-            });
-        const newPrevCond = [...copyPrevCond, ...reversedCondtion];
-
-        //* every conditions except last have to add current condition
-        const currentCond = cond.split(':');
-        if (condIdx !== avaliableCondition.length - 1) {
-            newPrevCond.push(currentCond[0]);
-        }
-
-        //* last itself is next
-        mergedCondition.push([
-            newPrevCond,
-            condIdx !== avaliableCondition.length - 1 ? currentCond[1] : cond,
+    const reversedCondtion = [];
+    for (const [key, operand, value, newNext] of avaliableCondition.slice(
+        0,
+        -1
+    )) {
+        const newPrevCond = [
+            ...copyPrevCond,
+            ...reversedCondtion,
+            [key, operand, value],
+        ];
+        mergedCondition.push([newPrevCond, newNext]);
+        reversedCondtion.push([
+            key,
+            operand === '>' ? '<' : '>',
+            operand === '>' ? value + 1 : value - 1,
         ]);
     }
+    mergedCondition.push([
+        [...copyPrevCond, ...reversedCondtion],
+        avaliableCondition.at(-1),
+    ]);
 }
 
-console.log(
-    passedCondition.reduce((prev, cur) => prev + processCombination(cur), 0)
+const combination = mergedCondition.reduce(
+    (prev, cur) => prev + processCombination(cur[0]),
+    0
 );
+console.log(combination);
 
 //* function
 function processCombination(passedCondition) {
@@ -71,18 +75,11 @@ function processCombination(passedCondition) {
         s: [1, 4001],
     };
 
-    for (const cond of passedCondition) {
-        const valueIdx = cond[0];
-        const operand = cond[1];
-        const valueInt = parseInt(cond.slice(2));
-
+    for (const [key, operand, value] of passedCondition) {
         if (operand === '>') {
-            avaliable[valueIdx][0] = Math.max(
-                avaliable[valueIdx][0],
-                valueInt + 1
-            );
+            avaliable[key][0] = Math.max(avaliable[key][0], value + 1);
         } else {
-            avaliable[valueIdx][1] = Math.min(avaliable[valueIdx][1], valueInt);
+            avaliable[key][1] = Math.min(avaliable[key][1], value);
         }
     }
     const combination = Object.values(avaliable).reduce(
