@@ -22,7 +22,6 @@ const mergedCondition = [[[], 'in']];
 
 while (!mergedCondition.every((condition) => condition.at(-1) === 'A')) {
     const [prevCond, next] = mergedCondition.shift();
-    const copyPrevCond = [...prevCond];
 
     //* if A, push back to array
     if (next === 'A') {
@@ -43,7 +42,7 @@ while (!mergedCondition.every((condition) => condition.at(-1) === 'A')) {
         -1
     )) {
         const newPrevCond = [
-            ...copyPrevCond,
+            ...prevCond,
             ...reversedCondtion,
             [key, operand, value],
         ];
@@ -55,7 +54,7 @@ while (!mergedCondition.every((condition) => condition.at(-1) === 'A')) {
         ]);
     }
     mergedCondition.push([
-        [...copyPrevCond, ...reversedCondtion],
+        [...prevCond, ...reversedCondtion],
         avaliableCondition.at(-1),
     ]);
 }
